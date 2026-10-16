@@ -1,0 +1,11 @@
+/vendor/
+.env
+*.log
+/logs/
+/tmp/
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.cache
