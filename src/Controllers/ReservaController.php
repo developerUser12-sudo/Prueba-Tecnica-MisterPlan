@@ -1,7 +1,16 @@
 <?php
 require_once __DIR__ . '/../Database/Conexion.php';
+require_once __DIR__ . '/../Repositories/ReservaRepository.php';
 class ReservaController
 {
+    private function validarFecha($fecha)
+    {
+        $fechaValidada = DateTime::createFromFormat('!Y-m-d', $fecha);
+        if (!$fechaValidada || $fechaValidada->format('Y-m-d') != $fecha) {
+            return null;
+        }
+        return $fechaValidada;
+    }
     public function crear()
     {
         header('Content-Type: application/json; charset=utf-8');
@@ -17,6 +26,7 @@ class ReservaController
             return;
         }
         $camposObligatorios = ['nombre_huesped', 'email_huesped', 'nombre_alojamiento', 'fecha_entrada', 'fecha_salida', 'importe'];
+
         foreach ($camposObligatorios as $campo) {
             if (!isset($datosReserva[$campo]) || trim((string) $datosReserva[$campo]) == '') {
                 http_response_code(422);
@@ -24,56 +34,43 @@ class ReservaController
                 return;
             }
         }
-        try {
-            $pdo = Conexion::conectar();
-            $pdo->beginTransaction();
-            $consulta = $pdo->prepare('INSERT INTO reserva (
-                nombre_huesped,
-                email_huesped,
-                nombre_alojamiento,
-                fecha_entrada,
-                fecha_salida,
-                importe,
-                notas
-            ) VALUES (
-                :nombre,
-                :email,
-                :alojamiento,
-                :entrada,
-                :salida,
-                :importe,
-                :notas
-            )');
-            $consulta->execute([
-                'nombre' => trim($datosReserva['nombre_huesped']),
-                'email' => trim($datosReserva['email_huesped']),
-                'alojamiento' => trim($datosReserva['nombre_alojamiento']),
-                'entrada' => $datosReserva['fecha_entrada'],
-                'salida' => $datosReserva['fecha_salida'],
-                'importe' => $datosReserva['importe'],
-                'notas' => $datosReserva['notas'] ?? null
-            ]);
-            $idReserva = (int) $pdo->lastInsertId();
-            $consultaEvento = $pdo->prepare(
-                'INSERT INTO reserva_evento
-                    (reserva_id, tipo, descripcion)
-                 VALUES
-                    (:reserva_id, :tipo, :descripcion)'
-            );
-            $consultaEvento->execute([
-                'reserva_id' => $idReserva,
-                'tipo' => 'creacion',
-                'descripcion' => 'Reserva creada'
-            ]);
+        if (!filter_var($datosReserva['email_huesped'], FILTER_VALIDATE_EMAIL)) {
+            http_response_code(422);
+            echo json_encode(['error' => 'Email no válido']);
+            return;
+        }
+        if (!is_numeric($datosReserva['importe']) || $datosReserva['importe'] < 0) {
+            http_response_code(422);
+            echo json_encode(['error' => 'Importe no válido']);
+            return;
+        }
+        if ($this->validarFecha($datosReserva['fecha_entrada']) == null || $this->validarFecha($datosReserva['fecha_salida']) == null) {
+            http_response_code(422);
+            echo json_encode(['error' => 'Fechas no válidas']);
+            return;
 
-            $pdo->commit();
+        }
+        if ($datosReserva['fecha_entrada'] >= $datosReserva['fecha_salida']) {
+            http_response_code(422);
+            echo json_encode(['error' => 'Fechas no válidas']);
+            return;
+        }
+
+        try {
+            $repository = new ReservaRepository();
+            $idReserva = $repository->crear(
+                $datosReserva['nombre_huesped'],
+                $datosReserva['email_huesped'],
+                $datosReserva['nombre_alojamiento'],
+                $datosReserva['fecha_entrada'],
+                $datosReserva['fecha_salida'],
+                $datosReserva['importe'],
+                $datosReserva['notas'] ?? null
+            );
             http_response_code(201);
             echo json_encode(['mensaje' => 'Reserva creada correctamente', 'id' => $idReserva]);
         } catch (\Throwable $th) {
-            if (isset($pdo) && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log($th->getMessage());
+
             http_response_code(500);
             echo json_encode(['error' => 'No se pudo crear la reserva']);
         }
@@ -87,11 +84,8 @@ class ReservaController
             return;
         }
         try {
-            $pdo = Conexion::conectar();
-            $pdo->beginTransaction();
-            $consulta = $pdo->prepare('SELECT * FROM reserva WHERE id=:id');
-            $consulta->execute(['id' => $id]);
-            $reserva = $consulta->fetch();
+            $repository = new ReservaRepository();
+            $reserva = $repository->detalle($id);
             if (!$reserva) {
                 http_response_code(404);
                 echo json_encode(['error' => 'Reserva no encontrada']);
@@ -100,7 +94,6 @@ class ReservaController
             http_response_code(200);
             echo json_encode($reserva);
         } catch (\Throwable $th) {
-            error_log($th->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'No se pudo encontrar la reserva']);
         }
@@ -126,29 +119,18 @@ class ReservaController
             return;
         }
         try {
-            $pdo = Conexion::conectar();
-            $pdo->beginTransaction();
-            $consultaSelect = $pdo->prepare('SELECT * FROM reserva WHERE id=:id');
-            $consultaSelect->execute(['id' => $id]);
-            $reserva = $consultaSelect->fetch();
+            $repository = new ReservaRepository();
+            $reserva = $repository->cambiarEstado($id, $datos['estado']);
             if (!$reserva) {
                 http_response_code(404);
                 echo json_encode(['error' => 'Reserva no encontrada']);
                 return;
             }
-            $consultaUpdate = $pdo->prepare('UPDATE  reserva SET estado=:estado WHERE id=:id');
-            $consultaUpdate->execute(['estado' => $datos['estado'], 'id' => $id]);
-            $consultaEvento = $pdo->prepare('INSERT INTO reserva_evento (reserva_id, tipo, descripcion) VALUES (:id,:tipo,:descripcion)');
-            $consultaEvento->execute(['id' => $id, 'tipo' => $datos['estado'], 'descripcion' => 'Estado cambiado de ' . $reserva['estado'] . ' a ' . $datos['estado']]);
-            $pdo->commit();
             http_response_code(200);
-            echo json_encode(['mensaje' => 'Estado cambiado', 'estado' => $datos['estado'], 'id' => $id]);
+            echo json_encode(['mensaje' => 'Estado cambiado', 'estado' => 'Estado cambiado a ' . $datos['estado'], 'id' => $id]);
 
         } catch (\Throwable $th) {
-            if (isset($pdo) && $pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-            error_log($th->getMessage());
+
             http_response_code(500);
             echo json_encode(['error' => 'No se pudo cambiar el estado']);
         }
@@ -161,44 +143,31 @@ class ReservaController
             echo json_encode(['error' => 'Metodo no permitido']);
             return;
         }
-        $sql = 'SELECT * FROM reserva';
-        $parametros = [];
-        $condiciones = [];
-        if (isset($_GET['estado']) && $_GET['estado'] != '') {
-            $estados = ['pendiente', 'confirmada', 'cancelada'];
-            if (!in_array($_GET['estado'], $estados, true)) {
+        if (isset($_GET['fecha_entrada']) && $this->validarFecha($_GET['fecha_entrada']) == null || isset($_GET['fecha_salida']) && $this->validarFecha($_GET['fecha_salida']) == null) {
+            http_response_code(422);
+            echo json_encode(['error' => 'Fechas no válidas']);
+            return;
+
+        }
+        if (isset($_GET['fecha_entrada']) && isset($_GET['fecha_salida'])) {
+            if ($_GET['fecha_entrada'] >= $_GET['fecha_salida']) {
+                http_response_code(422);
+                echo json_encode(['error' => 'Fechas no válidas']);
+                return;
+            }
+        }
+
+        try {
+            $repository = new ReservaRepository();
+            $reserva = $repository->filtrar($_GET['estado'] ?? null, $_GET['nombre_huesped'] ?? null, $_GET['fecha_entrada'] ?? null, $_GET['fecha_salida'] ?? null);
+            if ($reserva === null) {
                 http_response_code(422);
                 echo json_encode(['error' => 'Estado no válido']);
                 return;
             }
-            $condiciones[] = 'estado=:estado';
-            $parametros['estado'] = $_GET['estado'];
-        }
-        if (isset($_GET['nombre_huesped']) && $_GET['nombre_huesped'] != '') {
-            $condiciones[] = 'nombre_huesped LIKE :nombre_huesped';
-            $parametros['nombre_huesped'] = '%' . trim($_GET['nombre_huesped']) . '%';
-        }
-        if (isset($_GET['fecha_entrada']) && $_GET['fecha_entrada'] != '') {
-            $condiciones[] = 'fecha_entrada>=:fecha_entrada';
-            $parametros['fecha_entrada'] = $_GET['fecha_entrada'];
-        }
-        if (isset($_GET['fecha_salida']) && $_GET['fecha_salida'] != '') {
-            $condiciones[] = 'fecha_salida<=:fecha_salida';
-            $parametros['fecha_salida'] = $_GET['fecha_salida'];
-        }
-
-        if (!empty($condiciones)) {
-            $sql.=' WHERE '.implode(' AND ',$condiciones);
-        }
-        try {
-            $pdo = Conexion::conectar();
-            $consulta = $pdo->prepare($sql);
-            $consulta->execute($parametros);
-            $reserva = $consulta->fetchAll();
             http_response_code(200);
             echo json_encode($reserva);
         } catch (\Throwable $th) {
-            error_log($th->getMessage());
             http_response_code(500);
             echo json_encode(['error' => 'No se pudo encontrar la reserva']);
         }
