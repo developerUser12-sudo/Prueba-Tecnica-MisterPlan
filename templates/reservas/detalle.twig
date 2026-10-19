@@ -1,0 +1,81 @@
+
+{% extends 'base.twig' %}
+
+{% block title %}Detalle de reserva{% endblock %}
+
+{% block content %}
+    <h2>Detalle de reserva</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Campo</th>
+                <th>Información</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th>Id</th>
+                <td>{{ reserva.id }}</td>
+            </tr>
+            <tr>
+                <th>Huésped</th>
+                <td>{{ reserva.nombre_huesped }}</td>
+            </tr>
+            <tr>
+                <th>Email</th>
+                <td>{{ reserva.email_huesped }}</td>
+            </tr>
+            <tr>
+                <th>Alojamiento</th>
+                <td>{{ reserva.nombre_alojamiento }}</td>
+            </tr>
+            <tr>
+                <th>Entrada</th>
+                <td>{{ reserva.fecha_entrada|date('d/m/Y') }}</td>
+            </tr>
+            <tr>
+                <th>Salida</th>
+                <td>{{ reserva.fecha_salida|date('d/m/Y') }}</td>
+            </tr>
+            <tr>
+                <th>Estado</th>
+                <td>{{ reserva.estado }}</td>
+            </tr>
+            <tr>
+                <th>Importe</th>
+                <td>{{ reserva.importe }} €</td>
+            </tr>
+            <tr>
+                <th>Notas</th>
+                <td>{{ reserva.notas ?: 'Sin notas' }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Historial de eventos</h3>
+
+    {% if eventos is empty %}
+        <p>No hay eventos registrados.</p>
+    {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Tipo</th>
+                    <th>Descripción</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for evento in eventos %}
+                    <tr>
+                        <td>{{ evento.tipo }}</td>
+                        <td>{{ evento.descripcion }}</td>
+                        <td>{{ evento.fecha_creacion|date('d/m/Y H:i') }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+{% endblock %}

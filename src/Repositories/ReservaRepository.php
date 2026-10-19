@@ -67,7 +67,7 @@ class ReservaRepository
             $consulta->execute(['id' => $id]);
             return $consulta->fetch();
         } catch (\Throwable $th) {
-            
+
             error_log($th->getMessage());
             throw $th;
         }
@@ -140,5 +140,11 @@ class ReservaRepository
             error_log($th->getMessage());
             throw $th;
         }
+    }
+    public function obtenerEventos($id)
+    {
+        $consulta = $this->pdo->prepare('SELECT * FROM reserva_evento WHERE reserva_id=:id ORDER BY fecha_creacion ASC, id ASC');
+        $consulta->execute(['id' => $id]);
+        return $consulta->fetchAll();
     }
 }

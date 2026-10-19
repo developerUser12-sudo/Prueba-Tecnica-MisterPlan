@@ -143,7 +143,7 @@ class ReservaController
             echo json_encode(['error' => 'Metodo no permitido']);
             return;
         }
-        if (isset($_GET['fecha_entrada']) && $this->validarFecha($_GET['fecha_entrada']) == null || isset($_GET['fecha_salida']) && $this->validarFecha($_GET['fecha_salida']) == null) {
+        if ((isset($_GET['fecha_entrada']) && $this->validarFecha($_GET['fecha_entrada']) == null) || (isset($_GET['fecha_salida']) && $this->validarFecha($_GET['fecha_salida']) == null)) {
             http_response_code(422);
             echo json_encode(['error' => 'Fechas no válidas']);
             return;

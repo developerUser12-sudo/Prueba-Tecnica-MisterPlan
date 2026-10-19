@@ -1,0 +1,71 @@
+
+{% extends 'base.twig' %}
+
+{% block title %}Listado de reservas{% endblock %}
+
+{% block content %}
+    <h2>Listado de reservas</h2>
+    <form action="index.php" method="GET">
+        <input type="hidden" name="ruta" value="reservas/filtrar">
+
+        <label for="estado">Estado:</label>
+        <select id="estado" name="estado">
+            <option value="">Todos</option>
+            <option value="pendiente"
+                {% if filtros.estado|default('') == 'pendiente' %}selected{% endif %}>
+                Pendiente
+            </option>
+            <option value="confirmada"
+                {% if filtros.estado|default('') == 'confirmada' %}selected{% endif %}>
+                Confirmada
+            </option>
+            <option value="cancelada"
+                {% if filtros.estado|default('') == 'cancelada' %}selected{% endif %}>
+                Cancelada
+            </option>
+        </select>
+
+        <label for="nombre_huesped">Huésped:</label>
+        <input type="text" id="nombre_huesped" name="nombre_huesped" value="{{ filtros.nombre_huesped|default('') }}" placeholder="Nombre del huésped">
+        <label for="fecha_entrada">Entrada desde:</label>
+        <input type="date" id="fecha_entrada" name="fecha_entrada" value="{{ filtros.fecha_entrada|default('') }}">
+        <label for="fecha_salida">Salida hasta:</label>
+        <input type="date" id="fecha_salida" name="fecha_salida" value="{{ filtros.fecha_salida|default('') }}">
+        <button type="submit">Filtrar</button>
+        <a href="index.php?ruta=reservas">Limpiar filtros</a>
+    </form>
+    {% if reservas is empty %}
+        <p>No hay reservas disponibles.</p>
+    {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Id</th>
+                    <th>Huésped</th>
+                    <th>Alojamiento</th>
+                    <th>Entrada</th>
+                    <th>Salida</th>
+                    <th>Estado</th>
+                    <th>Importe</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for reserva in reservas %}
+                    <tr>
+                        <td>{{reserva.id}}</td>
+                        <td>{{reserva.nombre_huesped}}</td>
+                        <td>{{reserva.nombre_alojamiento}}</td>
+                        <td>{{reserva.fecha_entrada|date('d/m/Y')}}</td>
+                        <td>{{reserva.fecha_salida|date('d/m/Y')}}</td>
+                        <td>{{reserva.estado}}</td>
+                        <td>{{reserva.importe}} €</td>
+                        <td>
+                            <a href="index.php?ruta=reservas/detalle&id={{ reserva.id }}">Ver detalle</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+{% endblock %}

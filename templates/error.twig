@@ -1,0 +1,13 @@
+{% extends 'base.twig' %}
+
+{% block title %}Error{% endblock %}
+
+{% block content %}
+    <h2>Ha ocurrido un error</h2>
+
+    <p>{{ mensaje }}</p>
+
+    <p>
+        <a href="index.php?ruta=reservas">Volver al listado de reservas</a>
+    </p>
+{% endblock %}
