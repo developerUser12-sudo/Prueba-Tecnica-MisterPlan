@@ -2,6 +2,10 @@
 
 Aplicación web de gestión de reservas de alojamiento desarrollada como parte de una prueba técnica para MisterPlan. El proyecto incluye una API desarrollada en PHP nativo, una base de datos MySQL, vistas renderizadas con Twig e interacción mediante JavaScript.
 
+## URL de la web
+
+* https://prueba-tecnica-misterplan.onrender.com/index.php?ruta=reservas
+
 ## Tecnologías utilizadas
 
 ### Backend
