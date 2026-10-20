@@ -1,6 +1,6 @@
 # Prueba técnica para Misterplan
 
-Aplicación web de gestión de reservas de alojamiento desarrollada como parte de una prueba técnica para MisterPlan. El proyecto incluye una API desarrollada en PHP nativo, una base de datos MySQL, vistas renderizadas con Twig e interacción mediante JavaScript.
+Aplicación web de gestión de reservas de alojamiento desarrollada como parte de una prueba técnica para MisterPlan. El proyecto incluye una API desarrollada en PHP nativo, una base de datos MySQL y vistas renderizadas con Twig. La aplicación se ha desarrollado centrándose en la gestión de reservas, los filtros, el detalle de cada reserva y el historial de eventos. La interfaz se ha mantenido sencilla, sin dedicar tiempo adicional a la personalización visual mediante CSS.
 
 ## URL de la web
 
